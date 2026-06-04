@@ -22,3 +22,7 @@ Desktop.ini
 
 # OS
 .DS_Store
+
+# Word 临时锁文件
+~$*
+docs/~$*
