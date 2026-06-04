@@ -1,0 +1,43 @@
+---
+description: AI任务管理平台实训项目 — Spring Boot 3 + Thymeleaf + Bootstrap 编码约定
+globs: ai-task-manager/**/*
+alwaysApply: true
+---
+
+# AI Task Manager — 项目规则
+
+## 技术栈
+
+- Java 17，Spring Boot 3.x，Maven
+- 前端：Thymeleaf + Bootstrap（CDN）
+- 后期：MySQL、DeepSeek API
+- 不要引入未要求的框架（如 React、JPA，除非当天任务需要）
+
+## 包结构
+
+- 根包：`com.example.aitaskmanager`
+- Controller：`controller` 包，`@Controller` 返回页面，`@RestController` 返回 JSON API
+- 页面模板：`src/main/resources/templates/`
+- 静态资源：`src/main/resources/static/`
+
+## 编码习惯
+
+- 每次只完成用户请求的**最小步骤**，不要一次生成整个系统
+- 类名、方法名用英文；用户可见文案可用中文
+- API 路径建议：`/api/...`；页面路径：`/`、`/tasks` 等
+- 敏感信息（DeepSeek API Key）放环境变量或 `application.properties`，**不要提交到 Git**
+
+## 注释与可读性（必守）
+
+- 遵循 `.cursor/rules/documentation-and-readability.mdc`
+- 每个类/公共方法写 JavaDoc；HTML 主要区块写注释
+- 新 MCP / Skill 必须更新 `.cursor/README.md` 与 `docs/CURSOR-TOOLS.md`
+
+## 验证
+
+- 改代码后说明如何运行：`cd ai-task-manager && mvn spring-boot:run`
+- 说明要访问的 URL 与预期结果
+
+## 参考
+
+- 社区规则合集：https://github.com/PatrickJS/awesome-cursorrules

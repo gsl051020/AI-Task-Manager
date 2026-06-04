@@ -1,0 +1,24 @@
+# Maven 编译产物
+ai-task-manager/target/
+
+# Playwright MCP 调试快照
+.playwright-mcp/
+
+# 环境变量与密钥（切勿提交真实 Key）
+.env
+.env.*
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# 日志与系统文件
+*.log
+Thumbs.db
+Desktop.ini
+
+# OS
+.DS_Store

@@ -1,0 +1,4 @@
+{
+  "form": "none",
+  "onchange": "this.form.submit()"
+}

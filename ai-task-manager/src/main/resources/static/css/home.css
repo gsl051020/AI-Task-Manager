@@ -1,0 +1,832 @@
+/*
+  首页样式：黑白灰「新拟态（Neumorphism）」高级简约风。
+  设计要点：
+  1) 背景与卡片同色，靠「一明一暗」两个方向的柔和阴影制造凹凸质感（拟物感）。
+  2) 全站只用黑/白/灰，强调色也是单色（近黑或近白），保持克制高级。
+  3) 通过 <html data-theme="light|dark"> 切换昼夜两套变量。
+  4) 昼夜切换的圆形扩散动画交给 View Transitions API（见 theme.js + 文件底部样式）。
+*/
+
+/* ---------- 主题变量：白天（浅色） ---------- */
+:root,
+:root[data-theme="light"] {
+    --bg: #e7e8ee;
+    --surface: #e7e8ee;
+    --text: #2a2d34;
+    --text-soft: #6c7079;
+    --text-faint: #9aa0a9;
+    --shadow-dark: #bfc1c9;
+    --shadow-light: #ffffff;
+    --accent: #2a2d34;
+    --accent-contrast: #ffffff;
+    --line: rgba(42, 45, 52, 0.08);
+    /* 翻页时钟折痕缝：白天用中深灰，在白卡上压出清晰的深色凹槽 */
+    --fc-seam: rgba(18, 20, 26, 0.5);
+    /* 波点背景取色：白天=白底 + 浅灰波点（theme.js 读取） */
+    --dot-bg: #ffffff;
+    --dot-color: 205, 209, 216;
+    --panel-radius: 28px;
+    --panel-gap: 24px;
+    --panel-border: rgba(255, 255, 255, 0.72);
+    --panel-ring: rgba(42, 45, 52, 0.07);
+}
+
+/* ---------- 主题变量：夜晚（深色） ---------- */
+:root[data-theme="dark"] {
+    --bg: #1d1f24;
+    --surface: #1d1f24;
+    --text: #ecedf1;
+    --text-soft: #a3a8b2;
+    --text-faint: #6f7681;
+    --shadow-dark: #141519;
+    --shadow-light: #292c33;
+    --accent: #ecedf1;
+    --accent-contrast: #1d1f24;
+    --line: rgba(255, 255, 255, 0.08);
+    /* 翻页时钟折痕缝：黑夜用更深的近黑，凹槽更深邃 */
+    --fc-seam: rgba(0, 0, 0, 0.72);
+    /* 波点背景取色：黑夜=黑底 + 深灰波点（theme.js 读取） */
+    --dot-bg: #08090c;
+    --dot-color: 54, 58, 66;
+    --panel-radius: 28px;
+    --panel-gap: 24px;
+    --panel-border: rgba(255, 255, 255, 0.11);
+    --panel-ring: rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- 全屏水波背景画布：固定铺满视口，置于所有内容下方 ---------- */
+.ripple-bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    pointer-events: none;
+    display: block;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
+
+html {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+body.home {
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    color: var(--text);
+    background: var(--bg);
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    /* 背景与文字色切换时也有过渡，配合圆形扩散更自然 */
+    transition: background 0.4s ease, color 0.4s ease;
+}
+
+/* ---------- 顶部导航 ---------- */
+.home-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    width: 100%;
+    padding: 20px clamp(16px, 3vw, 32px);
+    box-sizing: border-box;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.brand-logo {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dark), -5px -5px 12px var(--shadow-light);
+    font-size: 20px;
+}
+
+.brand-text small {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+/* ---------- 昼夜切换按钮（新拟态圆形按钮） ---------- */
+.theme-toggle {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 5px 5px 12px var(--shadow-dark), -5px -5px 12px var(--shadow-light);
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.theme-toggle:hover {
+    transform: translateY(-2px);
+}
+
+.theme-toggle:active {
+    box-shadow: inset 4px 4px 9px var(--shadow-dark), inset -4px -4px 9px var(--shadow-light);
+    transform: translateY(0);
+}
+
+.theme-toggle svg {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 24px;
+    height: 24px;
+    transition: opacity 0.25s ease, transform 0.4s ease;
+}
+
+/* 白天显示太阳、隐藏月亮；夜晚相反 */
+.theme-toggle .icon-moon {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.4);
+}
+
+.theme-toggle .icon-sun {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-moon {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-sun {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.4);
+}
+
+/* ---------- 主体布局 ---------- */
+.home-main {
+    flex: 1;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: clamp(12px, 2.5vh, 28px) clamp(16px, 3vw, 32px) clamp(16px, 3vh, 24px);
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-areas:
+        "hero clock"
+        "features features";
+    gap: clamp(var(--panel-gap), 4vw, 48px);
+    align-items: center;
+}
+
+.hero {
+    grid-area: hero;
+}
+
+.badge-soft {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    color: var(--text-soft);
+    background: var(--surface);
+    box-shadow: inset 3px 3px 7px var(--shadow-dark), inset -3px -3px 7px var(--shadow-light);
+}
+
+.hero-title {
+    margin: 22px 0 0;
+    font-size: clamp(40px, 6vw, 68px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+}
+
+.hero-title .type-line.thin {
+    display: block;
+    font-weight: 300;
+    color: var(--text-soft);
+}
+
+/* 打字机：光标与排版占位，避免逐字时高度跳动 */
+.hero[data-typewriter] .type-line {
+    display: block;
+    min-height: 1.05em;
+}
+
+.hero[data-typewriter] .type-cursor {
+    display: inline-block;
+    width: 4px;
+    height: 0.88em;
+    margin-left: 4px;
+    vertical-align: -0.06em;
+    border-radius: 1px;
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(42, 45, 52, 0.35);
+    animation: type-cursor-blink 0.75s step-end infinite;
+}
+
+:root[data-theme="dark"] .hero[data-typewriter] .type-cursor {
+    box-shadow: 0 0 12px rgba(236, 237, 241, 0.45);
+}
+
+.hero[data-typewriter] .type-line.thin .type-cursor {
+    background: var(--text-soft);
+}
+
+@keyframes type-cursor-blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+/* 标题打完后再显示按钮区 */
+.hero[data-typewriter]:not(.hero--typed) .cta-row {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+}
+
+.hero[data-typewriter].hero--typed .cta-row {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.hero-subtitle {
+    max-width: 30rem;
+    margin: 22px 0 0;
+    font-size: 16px;
+    line-height: 1.85;
+    color: var(--text-soft);
+}
+
+.cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+    margin-top: 34px;
+}
+
+/* 主按钮：新拟态凸起 + 单色实底强调 */
+.btn-primary-neu {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    border: none;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    color: var(--accent-contrast);
+    background: var(--accent);
+    box-shadow: 6px 6px 14px var(--shadow-dark), -6px -6px 14px var(--shadow-light);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.btn-primary-neu:hover {
+    transform: translateY(-2px);
+    opacity: 0.92;
+}
+
+.btn-primary-neu:active {
+    transform: translateY(0);
+    box-shadow: 3px 3px 8px var(--shadow-dark), -3px -3px 8px var(--shadow-light);
+}
+
+.cta-hint {
+    font-size: 13px;
+    color: var(--text-faint);
+}
+
+/* ---------- 时钟卡片（呼应参考稿的倒计时/计时器） ---------- */
+.clock-card {
+    grid-area: clock;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: clamp(28px, 4vw, 44px);
+    border-radius: var(--panel-radius);
+    border: 1px solid var(--panel-border);
+    background: var(--surface);
+    box-shadow:
+        0 16px 34px -12px var(--shadow-dark),
+        12px 12px 26px var(--shadow-dark),
+        -10px -10px 22px var(--shadow-light),
+        0 0 0 1px var(--panel-ring);
+    isolation: isolate;
+}
+
+/* 首页大展示版：放大卡片和数字，接近主视觉展示组件 */
+.clock-card--hero {
+    min-height: min(360px, 42vh);
+    justify-content: center;
+    width: 100%;
+}
+
+.clock-label {
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+/* ---------- 翻页时钟（拟真纸片翻页效果） ---------- */
+.flip-clock {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 2px;
+    /* 用变量统一控制单元宽高与字号，方便整体缩放 */
+    --fc-h: clamp(70px, 11vw, 104px);
+    --fc-w: clamp(48px, 8vw, 72px);
+    --fc-fs: clamp(50px, 9vw, 82px);
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+}
+
+.clock-card--hero .flip-clock {
+    --fc-h: clamp(68px, 9vw, 104px);
+    --fc-w: clamp(44px, 6.5vw, 66px);
+    --fc-fs: clamp(46px, 7.2vw, 72px);
+    gap: clamp(4px, 0.8vw, 8px);
+    max-width: 100%;
+    justify-content: center;
+}
+
+/* 时分秒六位数字：略缩小单元，避免卡片内横向溢出 */
+.clock-card--hero .flip-clock[data-clock-format="hms"] {
+    --fc-h: clamp(56px, 7.5vw, 92px);
+    --fc-w: clamp(36px, 5.2vw, 56px);
+    --fc-fs: clamp(38px, 6vw, 64px);
+    gap: clamp(2px, 0.5vw, 6px);
+}
+
+.clock-card--hero .flip-group {
+    gap: clamp(4px, 0.6vw, 6px);
+}
+
+.clock-card--hero .flip-sep {
+    font-size: calc(var(--fc-fs) * 0.52);
+}
+
+/*
+  交互卡片（参考 Interactive Eye-Following Card 思路）：
+  通过 JS 持续更新 --mx / --my，让白色高光跟随鼠标移动。
+*/
+.interactive-card {
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.interactive-card::before {
+    content: "";
+    position: absolute;
+    inset: -24%;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+        radial-gradient(
+            circle at var(--mx, 50%) var(--my, 50%),
+            rgba(255, 255, 255, 0.42) 0%,
+            rgba(255, 255, 255, 0.22) 18%,
+            rgba(255, 255, 255, 0.08) 34%,
+            rgba(255, 255, 255, 0) 58%
+        );
+    opacity: var(--glow, 0);
+    transition: opacity 0.2s ease;
+}
+
+.interactive-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    opacity: calc(var(--glow, 0) * 0.95);
+}
+
+.flip-group {
+    display: flex;
+    gap: 6px;
+}
+
+.flip-sep {
+    font-size: calc(var(--fc-fs) * 0.62);
+    font-weight: 800;
+    color: var(--text-faint);
+    line-height: 1;
+}
+
+/* 单个翻页数字单元：上下两半 + 两片翻动叶片 */
+.flip-unit {
+    position: relative;
+    width: var(--fc-w);
+    height: var(--fc-h);
+    perspective: 340px;
+}
+
+.flip-card {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    background: var(--surface);
+    color: var(--text);
+}
+
+.card-upper,
+.card-flip-front {
+    top: 0;
+    border-radius: 14px 14px 0 0;
+    box-shadow: 6px 0 14px var(--shadow-dark), -6px 0 14px var(--shadow-light), inset 0 1px 0 var(--shadow-light);
+    /* 折痕缝：始终深色高亮，深浅由 --fc-seam 按昼夜主题决定 */
+    border-bottom: 2px solid var(--fc-seam);
+}
+
+.card-lower,
+.card-flip-back {
+    bottom: 0;
+    border-radius: 0 0 14px 14px;
+    box-shadow: 6px 0 14px var(--shadow-dark), -6px 0 14px var(--shadow-light);
+    /* 折痕下沿一条高光，配合上半深缝形成立体凹槽 */
+    border-top: 1px solid var(--shadow-light);
+}
+
+/* 数字撑满整个单元高度，再靠上/下半卡裁切出上下半字形 */
+.flip-num {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: var(--fc-h);
+    line-height: var(--fc-h);
+    text-align: center;
+    font-size: var(--fc-fs);
+    letter-spacing: -0.04em;
+}
+
+.card-upper .flip-num,
+.card-flip-front .flip-num {
+    top: 0;
+}
+
+.card-lower .flip-num,
+.card-flip-back .flip-num {
+    bottom: 0;
+}
+
+/* 上叶片绕底边向下翻，下叶片绕顶边翻入 */
+.card-flip-front {
+    transform-origin: bottom;
+    backface-visibility: hidden;
+    z-index: 3;
+}
+
+.card-flip-back {
+    transform-origin: top;
+    transform: rotateX(90deg);
+    backface-visibility: hidden;
+    z-index: 3;
+}
+
+/* 静止时隐藏两片翻动叶片，只显示上下静态半卡 */
+.flip-unit:not(.flipping) .card-flip-front,
+.flip-unit:not(.flipping) .card-flip-back {
+    display: none;
+}
+
+.flip-unit.flipping .card-flip-front {
+    animation: flipFrontDown 0.28s ease-in forwards;
+}
+
+.flip-unit.flipping .card-flip-back {
+    animation: flipBackIn 0.28s 0.28s ease-out forwards;
+}
+
+@keyframes flipFrontDown {
+    0% { transform: rotateX(0deg); }
+    100% { transform: rotateX(-90deg); }
+}
+
+@keyframes flipBackIn {
+    0% { transform: rotateX(90deg); }
+    100% { transform: rotateX(0deg); }
+}
+
+.clock-date {
+    margin-top: 4px;
+    font-size: 15px;
+    color: var(--text-soft);
+}
+
+.clock-divider {
+    width: 64px;
+    height: 6px;
+    margin: 18px 0 6px;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: inset 2px 2px 5px var(--shadow-dark), inset -2px -2px 5px var(--shadow-light);
+}
+
+.clock-note {
+    font-size: 13px;
+    color: var(--text-faint);
+}
+
+/* ---------- 功能卡片网格 ---------- */
+.features {
+    grid-area: features;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(var(--panel-gap), 2vw, 28px);
+}
+
+/* 打字结束后依次自下而上弹入（带轻微回弹惯性） */
+.features[data-feature-reveal]:not(.features--revealed) .feature-tile {
+    opacity: 0;
+    transform: translateY(52px) scale(0.94);
+    pointer-events: none;
+}
+
+.features[data-feature-reveal].features--revealed .feature-tile {
+    animation: feature-pop-up 0.78s cubic-bezier(0.22, 1.18, 0.36, 1) forwards;
+    pointer-events: auto;
+}
+
+.features[data-feature-reveal].features--revealed .feature-tile:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.features[data-feature-reveal].features--revealed .feature-tile:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.features[data-feature-reveal].features--revealed .feature-tile:nth-child(3) {
+    animation-delay: 0.35s;
+}
+
+@keyframes feature-pop-up {
+    0% {
+        opacity: 0;
+        transform: translateY(52px) scale(0.94);
+    }
+    55% {
+        opacity: 1;
+        transform: translateY(-10px) scale(1.02);
+    }
+    72% {
+        transform: translateY(5px) scale(0.99);
+    }
+    86% {
+        transform: translateY(-3px) scale(1.005);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.feature-tile {
+    padding: 26px;
+    border-radius: calc(var(--panel-radius) - 2px);
+    border: 1px solid var(--panel-border);
+    background: var(--surface);
+    box-shadow:
+        0 14px 28px -10px var(--shadow-dark),
+        8px 8px 20px var(--shadow-dark),
+        -8px -8px 18px var(--shadow-light),
+        0 0 0 1px var(--panel-ring);
+    isolation: isolate;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 12px 12px 26px var(--shadow-dark), -12px -12px 26px var(--shadow-light);
+}
+
+.feature-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    border-radius: 14px;
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: inset 3px 3px 7px var(--shadow-dark), inset -3px -3px 7px var(--shadow-light);
+}
+
+.feature-tile h3 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.feature-tile p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-soft);
+}
+
+.home-footer {
+    flex-shrink: 0;
+    padding: 12px clamp(16px, 3vw, 32px) 16px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    text-align: center;
+}
+
+/* ---------- 趣味挂件：眼球跟随鼠标 ---------- */
+.eye-follow-widget {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 60;
+}
+
+.eye-widget-card {
+    padding: 12px 14px 10px;
+    border-radius: 16px;
+    background: #0f5f9e;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
+    user-select: none;
+}
+
+.eye-pair {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.eye {
+    position: relative;
+    width: 66px;
+    height: 66px;
+    border-radius: 50%;
+    background: #f5f7fa;
+    overflow: hidden;
+}
+
+.eye .pupil {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #050505;
+    transform: translate(-50%, -50%);
+    transition: transform 0.08s linear;
+}
+
+.eye-widget-name {
+    margin: 8px 0 0;
+    text-align: center;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 860px) {
+    .home-main {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "hero"
+            "clock"
+            "features";
+    }
+
+    .features {
+        grid-template-columns: 1fr;
+    }
+
+    .eye-follow-widget {
+        right: 12px;
+        bottom: 12px;
+        transform: scale(0.9);
+        transform-origin: right bottom;
+    }
+}
+
+/*
+  ---------- 昼夜切换的「圆形扩散」过渡 ----------
+  原理：theme.js 调用 document.startViewTransition() 切换 data-theme，
+  浏览器对切换前/后各生成一张快照（::view-transition-old/new(root)）。
+  这里关掉默认的淡入淡出，改由 JS 用 clip-path 画一个从按钮位置向外扩张的圆，
+  形成「从按钮处以圆形延展开来」的昼夜切换动画。
+*/
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+/* 新主题画面盖在旧画面之上，由 clip-path 圆形逐渐揭开 */
+::view-transition-new(root) {
+    z-index: 1;
+}
+
+::view-transition-old(root) {
+    z-index: 0;
+}
+
+/* 不支持 View Transitions 的浏览器：用普通过渡兜底，避免生硬跳变 */
+@media (prefers-reduced-motion: reduce) {
+    body.home {
+        transition: none;
+    }
+
+    .features[data-feature-reveal]:not(.features--revealed) .feature-tile,
+    .features[data-feature-reveal].features--revealed .feature-tile {
+        opacity: 1;
+        transform: none;
+        animation: none;
+        pointer-events: auto;
+    }
+}
+
+/* ---------- 简约主题滚动条（无刻度尺，贴合新拟态灰调） ---------- */
+:root[data-theme="light"],
+:root:not([data-theme="dark"]) {
+    --scrollbar-track: #e7e8ee;
+    --scrollbar-thumb: #c4c7d0;
+    --scrollbar-thumb-hover: #9aa0a9;
+}
+
+:root[data-theme="dark"] {
+    --scrollbar-track: #1d1f24;
+    --scrollbar-thumb: #3d424c;
+    --scrollbar-thumb-hover: #6f7681;
+}
+
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+html::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+html::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+html::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid var(--scrollbar-track);
+}
+
+html::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+html::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}

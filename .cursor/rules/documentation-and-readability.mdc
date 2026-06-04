@@ -1,0 +1,46 @@
+---
+description: 所有代码、MCP、Skills、配置必须带清晰注释与说明，便于实训理解与答辩
+globs: "**/*"
+alwaysApply: true
+---
+
+# 注释与可读性规范（全项目强制）
+
+## 总则
+
+今后在本仓库中**新增或修改**的任何内容，都必须让人（和未来的你）能一眼看懂「这是什么、干什么、怎么用」。
+
+## Java / Spring Boot 代码
+
+- 每个 **public 类** 写类级 JavaDoc：用途、对应 URL 或业务流程
+- 每个 **public 方法** 写方法 JavaDoc：`@param`、`@return`、访问路径（Controller）
+- 非显而易见的字段、分支、配置项写 **行内注释**（中文或中英均可）
+- 不要写废话注释（如 `// 设置变量`）；只解释 **为什么** 和 **业务含义**
+
+## 前端（Thymeleaf / HTML / CSS / JS）
+
+- 主要区块用 HTML 注释标出：`<!-- 任务输入表单：Day3 -->`
+- 复杂表单字段说明 `name` 与后端参数的对应关系
+
+## MCP（`.cursor/mcp.json`）
+
+- JSON 本身不写注释；在 **`.cursor/README.md`** 中为每个 server 维护说明表
+- 新增 MCP 时必须同步更新 `.cursor/README.md` 和 `docs/CURSOR-TOOLS.md`
+
+## Skills（`.cursor/skills/*/SKILL.md`）
+
+- frontmatter 的 `description` 必须写清：**何时触发、解决什么问题**
+- 正文开头必须有 **「用途」「用法」「示例对话」** 三节
+- 若依赖某个 MCP，写明 MCP 名称与典型工具名
+
+## 模块与包
+
+- 新包（如 `service`、`model`）在包下增加 `package-info.java` 或 README，说明该层职责
+
+## 文档
+
+- 新功能在 `docs/` 或类注释中写 **验证步骤**（命令 + URL + 预期结果）
+
+## 答辩友好
+
+- 关键类/接口注释里可写「实训第几天引入」，方便写 PPT 和录屏讲解

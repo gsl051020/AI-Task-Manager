@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<!--
+  Day 6：首页封面模板（黑白灰「新拟态」高级简约风 + 昼夜切换）。
+  用途：用户访问 http://localhost:8080/ 时展示项目介绍，并引导进入 AI 任务工作台。
+  风格灵感：Figma 社区「Skeuomorphism」拟物风（柔和内外阴影 + 计时器卡片 + 卡片网格）。
+  交互：右上角按钮切换昼夜，动画从按钮处以圆形向外扩散（见 /js/theme.js + /css/home.css）。
+-->
+<html lang="zh-CN" data-theme="light" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI 任务管理平台</title>
+    <link rel="stylesheet" th:href="@{/css/home.css(v=panels1)}">
+    <!--
+      首屏前同步读取主题，避免「先白后黑」的闪烁（FOUC）。
+      必须放在 body 渲染前执行。
+    -->
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem("aitm-theme");
+                if (saved === "dark" || saved === "light") {
+                    document.documentElement.setAttribute("data-theme", saved);
+                }
+            } catch (e) { /* 忽略 */ }
+        })();
+    </script>
+</head>
+<body class="home">
+
+<!-- 全屏水波背景画布：由 theme.js 驱动，鼠标划过产生扩散波纹，颜色随昼夜主题切换 -->
+<canvas id="rippleBg" class="ripple-bg" aria-hidden="true"></canvas>
+
+<header class="home-nav">
+    <div class="brand">
+        <span class="brand-logo">◈</span>
+        <span class="brand-text">
+            AI 任务管理平台
+            <small>Task Workspace</small>
+        </span>
+    </div>
+
+    <!-- 昼夜切换按钮：内含太阳/月亮两个图标，按主题显隐 -->
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换昼夜模式" title="切换昼夜模式">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+        </svg>
+    </button>
+</header>
+
+<main class="home-main">
+    <!-- 左侧：标题 + 简介 + 行动按钮 -->
+    <section class="hero" data-typewriter aria-label="首页主标题区">
+        <span class="badge-soft">Spring Boot · Thymeleaf · DeepSeek</span>
+        <h1 class="hero-title" aria-label="把零散任务，整理成清晰计划">
+            <span class="type-line" data-type-text="把零散任务">把零散任务</span>
+            <span class="type-line thin" data-type-text="整理成清晰计划">整理成清晰计划</span>
+        </h1>
+        <p class="hero-subtitle" data-type-text="一个面向实训展示的智能任务工作台：支持任务分类、日期追踪、完成状态、AI 分析与日程优化，帮你专注真正重要的事。">
+            一个面向实训展示的智能任务工作台：支持任务分类、日期追踪、完成状态、
+            AI 分析与日程优化，帮你专注真正重要的事。
+        </p>
+        <div class="cta-row">
+            <a class="btn-primary-neu" th:href="@{/tasks}">
+                进入任务工作台
+                <span aria-hidden="true">→</span>
+            </a>
+            <span class="cta-hint">支持白天 / 夜晚两种主题</span>
+        </div>
+    </section>
+
+    <!-- 右侧：拟真「翻页时钟」卡片（数字像纸片一样向下翻动） -->
+    <aside class="clock-card clock-card--hero interactive-card">
+        <span class="clock-label">Now</span>
+        <!-- 翻页数字由 theme.js 动态生成并驱动翻动动画 -->
+        <div class="flip-clock" data-clock-format="hms" aria-label="当前时分秒"></div>
+        <span class="clock-date" data-clock-date>—</span>
+        <span class="clock-divider"></span>
+        <span class="clock-note">专注当下，规划未来</span>
+    </aside>
+
+    <!-- 下方：功能卡片网格 -->
+    <section class="features" data-feature-reveal>
+        <article class="feature-tile">
+            <span class="feature-icon">◎</span>
+            <h3>智能分类</h3>
+            <p>手动分类与 AI 自动分类结合，并用本地关键词规则兜底，归类更准。</p>
+        </article>
+        <article class="feature-tile">
+            <span class="feature-icon">✦</span>
+            <h3>AI 日程优化</h3>
+            <p>AI 先生成可编辑的预览方案，确认满意后再保存为正式日程。</p>
+        </article>
+        <article class="feature-tile">
+            <span class="feature-icon">▦</span>
+            <h3>日历追踪</h3>
+            <p>按日期查看任务，未完成显示小点，全部完成显示小勾，进度一目了然。</p>
+        </article>
+    </section>
+</main>
+
+<footer class="home-footer">
+    Day 6 · 黑白灰高级简约版 · 点击右上角切换昼夜
+</footer>
+
+<!-- 趣味挂件：眼球跟随鼠标 -->
+<section class="eye-follow-widget" aria-label="趣味眼球挂件">
+    <div class="eye-widget-card">
+        <div class="eye-pair">
+            <div class="eye" data-default-x="-7" data-default-y="-6">
+                <span class="pupil"></span>
+            </div>
+            <div class="eye" data-default-x="5" data-default-y="4">
+                <span class="pupil"></span>
+            </div>
+        </div>
+        <p class="eye-widget-name">Cookie Monster</p>
+    </div>
+</section>
+
+<script th:src="@{/js/theme.js(v=2)}"></script>
+<script th:src="@{/js/hero-typewriter.js(v=2)}"></script>
+</body>
+</html>

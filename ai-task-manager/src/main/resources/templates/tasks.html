@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<!--
+  Day 6：高级感任务工作台页面。
+  用途：在保留 TaskController 所有功能的基础上，引入 Bootstrap 与「黑白灰新拟态 + 昼夜切换」视觉系统，
+       与首页保持同一套主题（data-theme + theme.js 圆形扩散切换动画）。
+-->
+<html lang="zh-CN" data-theme="light" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI 任务工作台 - AI任务管理平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/app.css(v=panels1)}">
+    <!-- 首屏前同步读取主题，避免「先白后黑」闪烁（与首页共用同一个 localStorage 键） -->
+    <script>
+        (function () {
+            try {
+                var saved = localStorage.getItem("aitm-theme");
+                if (saved === "dark" || saved === "light") {
+                    document.documentElement.setAttribute("data-theme", saved);
+                }
+            } catch (e) { /* 忽略 */ }
+        })();
+    </script>
+</head>
+<body class="app-body" th:classappend="${calendarExpanded} ? ' calendar-open' : ''">
+<!-- 全屏水波背景画布：由 theme.js 驱动，鼠标划过产生扩散波纹，颜色随昼夜主题切换 -->
+<canvas id="rippleBg" class="ripple-bg" aria-hidden="true"></canvas>
+<!-- 展开日历的背景遮罩：点击日历外区域时收起，并用 backdrop-filter 模糊页面 -->
+<div th:if="${calendarExpanded}"
+     class="calendar-backdrop"></div>
+<div class="app-shell">
+    <!-- 顶部操作栏：左侧圆形返回首页按钮，右侧昼夜切换按钮 -->
+    <div class="workspace-topbar">
+        <a class="btn-back" th:href="@{/}" aria-label="返回首页" title="返回首页">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 18l-6-6 6-6"></path>
+            </svg>
+            <span class="btn-back-text">返回首页</span>
+        </a>
+
+        <div class="topbar-right">
+            <!-- 工作台小挂件：小尺寸翻页时钟，作为装饰信息组件 -->
+            <aside class="workspace-widget interactive-card" aria-label="时间挂件">
+                <span class="workspace-widget-label">NOW</span>
+                <div class="flip-clock flip-clock--mini" data-clock-format="hms" aria-label="当前时分秒"></div>
+                <span class="workspace-widget-date" data-clock-date>—</span>
+            </aside>
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换昼夜模式" title="切换昼夜模式">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- 顶部 Hero：Day 6 主视觉入口，展示项目定位与当前视图摘要 -->
+    <header class="app-hero glass-panel fade-up">
+        <div class="hero-content row g-4 align-items-end">
+            <div class="col-lg-8">
+                <span class="eyebrow">AI Powered Task Workspace</span>
+                <h1 class="hero-title">AI 任务管理平台</h1>
+                <p class="hero-subtitle">
+                    把任务分类、日期追踪、完成状态和 AI 日程优化放进一个统一工作台，
+                    用更清晰的节奏管理每天要做的事情。
+                </p>
+            </div>
+            <div class="col-lg-4">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <span class="stat-value" th:text="${#lists.size(tasks)}">0</span>
+                            <span class="stat-label">当前视图任务</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card">
+                            <span class="stat-value" th:text="${selectedDate != null ? selectedDate : defaultTaskDate}">2026-06-03</span>
+                            <span class="stat-label">当前关注日期</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 页面主布局：左侧玻璃导航栏 + 右侧任务与 AI 工作区 -->
+    <div class="dashboard-layout">
+        <aside class="sidebar glass-panel fade-up">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h2 class="section-title mb-0">分类导航</h2>
+                <span class="badge rounded-pill badge-soft">Day 6</span>
+            </div>
+
+            <!-- 左侧分类栏：默认「全部」，点击分类后通过 query 参数 category 过滤 -->
+            <ul class="category-nav">
+                <li>
+                    <a class="category-link"
+                       th:classappend="${selectedCategory == null} ? ' is-active' : ''"
+                       th:href="@{/tasks(selectedDate=${selectedDate}, selectedMonth=${selectedMonth})}">
+                        <span>全部任务</span>
+                        <span>All</span>
+                    </a>
+                </li>
+                <li th:each="category : ${categories}">
+                    <a class="category-link"
+                       th:classappend="${selectedCategory == category} ? ' is-active' : ''"
+                       th:href="@{/tasks(category=${category}, selectedDate=${selectedDate}, selectedMonth=${selectedMonth})}">
+                        <span th:text="${category.displayName}">日常</span>
+                        <span th:text="${category.name()}">DAILY</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- 左侧小日历：有未完成任务显示小点，全部完成显示小勾 -->
+            <section class="mini-calendar"
+                     th:classappend="${calendarExpanded} ? ' mini-calendar--expanded' : ''"
+                     th:data-close-url="@{/tasks(category=${selectedCategory}, selectedDate=${selectedDate}, selectedMonth=${selectedMonth})}">
+                <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                    <div>
+                        <h2 class="section-title mb-1">智能日历</h2>
+                        <p class="text-secondary mb-0" th:text="${calendarMonthTitle}">2026-06</p>
+                    </div>
+                    <!-- 展开/退回入口：普通状态点击展开；展开状态点击退回按钮收起 -->
+                    <a class="badge rounded-pill badge-soft text-decoration-none"
+                       th:if="${!calendarExpanded}"
+                       th:href="@{/tasks(category=${selectedCategory}, selectedDate=${selectedDate != null ? selectedDate : defaultTaskDate}, selectedMonth=${selectedMonth}, calendarView='expanded')}">
+                        点击展开
+                    </a>
+                    <a class="badge rounded-pill badge-soft text-decoration-none calendar-close-link"
+                       th:if="${calendarExpanded}"
+                       th:href="@{/tasks(category=${selectedCategory}, selectedDate=${selectedDate}, selectedMonth=${selectedMonth})}">
+                        退回
+                    </a>
+                </div>
+                <!-- 年月切换：支持直接选择要查看的年月（例如 2027-03） -->
+                <form th:action="@{/tasks}" method="get" class="d-flex flex-wrap align-items-center gap-2 mb-3 calendar-month-form"
+                      onclick="event.stopPropagation()">
+                    <input type="hidden" name="category" th:value="${selectedCategory}">
+                    <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                    <input th:if="${calendarExpanded}" type="hidden" name="calendarView" value="expanded">
+                    <label for="selectedMonth" class="small text-secondary">切换年月</label>
+                    <input id="selectedMonth"
+                           name="selectedMonth"
+                           type="month"
+                           class="form-control form-control-sm"
+                           style="max-width: 180px;"
+                           th:value="${selectedMonth}">
+                    <button class="btn btn-soft btn-sm" type="submit">查看</button>
+                </form>
+                <p th:if="${calendarExpanded}" class="text-secondary small">
+                    展开视图：点击某一天查看当天任务；点击当前日期或空白区域可收起。
+                </p>
+                <div class="calendar-grid">
+                    <strong class="calendar-weekday">一</strong>
+                    <strong class="calendar-weekday">二</strong>
+                    <strong class="calendar-weekday">三</strong>
+                    <strong class="calendar-weekday">四</strong>
+                    <strong class="calendar-weekday">五</strong>
+                    <strong class="calendar-weekday">六</strong>
+                    <strong class="calendar-weekday">日</strong>
+
+                    <div th:each="day : ${calendarDays}"
+                         class="calendar-day"
+                         th:classappend="${(!day.currentMonth ? ' calendar-day--muted' : '') + (selectedDate != null and selectedDate.equals(day.date) ? ' calendar-day--selected' : '')}">
+                        <!-- 日期链接规则：普通状态点击展开；展开状态点击当前日期收起 -->
+                        <a th:if="${calendarExpanded and selectedDate != null and selectedDate.equals(day.date)}"
+                           class="calendar-day-link"
+                           th:href="@{/tasks(category=${selectedCategory}, selectedDate=${day.date}, selectedMonth=${selectedMonth})}">
+                            <span th:text="${day.dayOfMonth}">1</span>
+                            <span th:if="${day.hasTask and !day.completed}" class="calendar-marker">•</span>
+                            <span th:if="${day.completed}" class="calendar-marker calendar-marker--done">✓</span>
+                            <ul th:if="${calendarExpanded and !#lists.isEmpty(day.taskSummaries)}" class="calendar-summary-list">
+                                <li th:each="summary : ${day.taskSummaries}" th:text="${summary}">任务摘要</li>
+                            </ul>
+                        </a>
+                        <a th:unless="${calendarExpanded and selectedDate != null and selectedDate.equals(day.date)}"
+                           class="calendar-day-link"
+                           th:href="@{/tasks(category=${selectedCategory}, selectedDate=${day.date}, selectedMonth=${selectedMonth}, calendarView='expanded')}">
+                            <span th:text="${day.dayOfMonth}">1</span>
+                            <span th:if="${day.hasTask and !day.completed}" class="calendar-marker">•</span>
+                            <span th:if="${day.completed}" class="calendar-marker calendar-marker--done">✓</span>
+                            <ul th:if="${calendarExpanded and !#lists.isEmpty(day.taskSummaries)}" class="calendar-summary-list">
+                                <li th:each="summary : ${day.taskSummaries}" th:text="${summary}">任务摘要</li>
+                            </ul>
+                        </a>
+                    </div>
+                </div>
+                <p class="small text-secondary mt-3 mb-0">• 有未完成任务；✓ 当天任务全部完成</p>
+            </section>
+        </aside>
+
+        <main class="main-workspace fade-up">
+            <!-- 操作成功提示：由 Controller 的 flash attribute 提供 -->
+            <div th:if="${message}" class="alert alert-info border-0 glass-panel" th:text="${message}">任务已保存</div>
+
+            <!-- 任务列表主视图区：先切换到某一天，再通过 + 号添加任务 -->
+            <section class="section-card glass-panel list-focus-panel">
+                <div class="list-toolbar mb-3">
+                    <div>
+                        <h2 class="section-title mb-1" th:if="${selectedDate == null}">任务列表（主视图）</h2>
+                        <h2 class="section-title mb-1" th:if="${selectedDate != null}">
+                            <span th:text="${selectedDate}">2026-06-03</span> 的任务
+                        </h2>
+                        <p class="text-secondary mb-0">先切换到某一天，再点击右侧 + 号添加任务。</p>
+                    </div>
+                    <span class="badge rounded-pill badge-soft" th:text="${#lists.size(tasks)} + ' 条任务'">0 条任务</span>
+                </div>
+
+                <div class="list-toolbar list-toolbar--actions mb-3">
+                    <form th:action="@{/tasks}" method="get" class="date-jump-form">
+                        <input type="hidden" name="category" th:value="${selectedCategory}">
+                        <input type="hidden" name="selectedMonth" th:value="${selectedMonth}">
+                        <input type="hidden" name="calendarView" th:value="${calendarExpanded ? 'expanded' : null}">
+                        <label class="form-label mb-0" for="jumpDate">切换到某一天</label>
+                        <input class="form-control form-control-sm"
+                               id="jumpDate"
+                               name="selectedDate"
+                               type="date"
+                               th:value="${selectedDate != null ? selectedDate : defaultTaskDate}">
+                        <button class="btn btn-soft btn-sm" type="submit">切换</button>
+                        <a class="btn btn-soft btn-sm"
+                           th:href="@{/tasks(category=${selectedCategory}, selectedMonth=${selectedMonth}, calendarView=${calendarExpanded ? 'expanded' : null})}">
+                            清除日期
+                        </a>
+                    </form>
+
+                    <div class="list-action-buttons">
+                        <button class="btn btn-soft btn-sm"
+                                type="submit"
+                                form="taskForm"
+                                formaction="/tasks/classify"
+                                formmethod="post"
+                                title="根据标题和描述调用 DeepSeek 推荐分类">
+                            AI 自动分类
+                        </button>
+                        <button class="btn add-task-fab"
+                                type="button"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#quickAddInList"
+                                aria-controls="quickAddInList"
+                                aria-expanded="false"
+                                title="添加任务">
+                            +
+                        </button>
+                    </div>
+                </div>
+
+                <div id="quickAddInList"
+                     class="collapse inline-create-panel mb-3"
+                     th:classappend="${draftTitle != null or draftContent != null} ? ' show' : ''">
+                    <form id="taskForm" th:action="@{/tasks}" method="post" class="row g-3">
+                        <input type="hidden" name="selectedCategory" th:value="${selectedCategory}">
+                        <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                        <input type="hidden" name="selectedMonth" th:value="${selectedMonth}">
+                        <input type="hidden" name="calendarView" th:value="${calendarExpanded ? 'expanded' : null}">
+                        <input type="hidden" name="taskDate" th:value="${selectedDate != null ? selectedDate : (draftTaskDate != null ? draftTaskDate : defaultTaskDate)}">
+
+                        <div class="col-lg-7">
+                            <label class="form-label" for="title">任务标题</label>
+                            <input class="form-control"
+                                   id="title"
+                                   name="title"
+                                   type="text"
+                                   placeholder="例如：完成数据库设计"
+                                   th:value="${draftTitle}"
+                                   required>
+                        </div>
+                        <div class="col-lg-5">
+                            <label class="form-label" for="category">任务分类</label>
+                            <select class="form-select" id="category" name="category">
+                                <option th:each="category : ${categories}"
+                                        th:value="${category}"
+                                        th:text="${category.displayName}"
+                                        th:selected="${recommendedCategory != null ? category == recommendedCategory : category.name() == 'DAILY'}">日常</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="content">任务描述</label>
+                            <textarea class="form-control"
+                                      id="content"
+                                      name="content"
+                                      rows="3"
+                                      placeholder="请输入任务详情"
+                                      th:text="${draftContent}"></textarea>
+                        </div>
+                        <div class="col-12 d-flex flex-wrap gap-2 align-items-center">
+                            <span class="small text-secondary">
+                                将添加到：<strong th:text="${selectedDate != null ? selectedDate : (draftTaskDate != null ? draftTaskDate : defaultTaskDate)}">2026-06-03</strong>
+                            </span>
+                            <button class="btn btn-glow" type="submit">添加任务</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div th:if="${#lists.isEmpty(tasks)}" class="empty-state">当前没有任务，请先提交一条。</div>
+
+                <article th:each="task : ${tasks}"
+                         class="task-card glass-panel"
+                         th:classappend="${(task.completed ? ' is-completed' : '') + (selectedTask != null and selectedTask.id == task.id ? ' is-analyzed' : '')}">
+                    <div class="d-flex flex-wrap justify-content-between gap-3">
+                        <div>
+                            <h3 class="task-title" th:text="${task.title}">任务标题</h3>
+                            <div class="task-meta">
+                                <span class="badge rounded-pill badge-soft" th:text="${task.category.displayName}">日常</span>
+                                <span class="badge rounded-pill badge-soft" th:text="${task.taskDate}">2026-06-03</span>
+                                <span class="badge rounded-pill" th:classappend="${task.completed} ? ' badge-done' : ' badge-todo'" th:text="${task.completed ? '已完成' : '未完成'}">未完成</span>
+                                <span class="badge rounded-pill badge-soft">#<span th:text="${task.id}">1</span></span>
+                            </div>
+                            <p class="text-secondary mb-0" th:if="${task.content}" th:text="${task.content}">任务描述</p>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-start gap-2">
+                            <a class="btn btn-sm btn-glow"
+                               th:href="@{/tasks/{id}/analyze(id=${task.id}, category=${selectedCategory}, selectedDate=${selectedDate}, selectedMonth=${selectedMonth}, calendarView=${calendarExpanded ? 'expanded' : null})}"
+                               title="让 AI 分析这条任务的做法与建议">
+                                AI 分析
+                            </a>
+                            <form th:action="@{/tasks/{id}/toggle-completed(id=${task.id})}" method="post">
+                                <input type="hidden" name="category" th:value="${selectedCategory}">
+                                <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                                <input type="hidden" name="selectedMonth" th:value="${selectedMonth}">
+                                <input type="hidden" name="calendarView" th:value="${calendarExpanded ? 'expanded' : ''}">
+                                <button class="btn btn-sm btn-soft" type="submit" th:text="${task.completed ? '取消完成' : '标记完成'}">标记完成</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <!-- 单任务 AI 分析结果：点击任务卡片上的「AI 分析」后展示 -->
+            <section th:if="${aiAnalysis != null}"
+                     class="section-card glass-panel ai-result-panel"
+                     id="aiAnalysisPanel">
+                <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                        <h2 class="section-title mb-1">AI 任务分析</h2>
+                        <p class="text-secondary mb-0" th:if="${selectedTask != null}">
+                            正在分析：<strong th:text="${selectedTask.title}">任务标题</strong>
+                        </p>
+                    </div>
+                    <a class="btn btn-soft btn-sm"
+                       th:href="@{/tasks(category=${selectedCategory}, selectedDate=${selectedDate}, selectedMonth=${selectedMonth}, calendarView=${calendarExpanded ? 'expanded' : null})}">
+                        关闭
+                    </a>
+                </div>
+                <pre class="ai-output mb-0" th:text="${aiAnalysis}">AI 分析内容</pre>
+            </section>
+
+            <!-- AI 日程优化：基于当前视图中的任务生成预览，确认后才写入正式日程 -->
+            <section class="section-card glass-panel schedule-panel">
+                <h2 class="section-title mb-1">AI 日程优化</h2>
+                <p class="text-secondary mb-3">
+                    根据<strong>全部任务</strong>生成安排建议。可先预览、修改，再确认保存为正式日程。
+                </p>
+
+                <form th:action="@{/schedule/preview}" method="post" class="d-flex flex-wrap align-items-end gap-2 mb-3">
+                    <input type="hidden" name="selectedCategory" th:value="${selectedCategory}">
+                    <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                    <input type="hidden" name="selectedMonth" th:value="${selectedMonth}">
+                    <input type="hidden" name="calendarView" th:value="${calendarExpanded ? 'expanded' : null}">
+                    <div>
+                        <label class="form-label mb-1" for="scheduleDays">安排天数</label>
+                        <input class="form-control form-control-sm"
+                               id="scheduleDays"
+                               name="days"
+                               type="number"
+                               min="1"
+                               max="14"
+                               th:value="${scheduleDays != null ? scheduleDays : 1}"
+                               style="width: 100px;">
+                    </div>
+                    <button class="btn btn-glow btn-sm" type="submit">生成预览</button>
+                    <button class="btn btn-soft btn-sm" type="submit" name="days" value="1">优化 1 天</button>
+                </form>
+
+                <div th:if="${schedulePreview != null}">
+                    <label class="form-label" for="schedulePreview">预览草稿（可直接修改）</label>
+                    <form th:action="@{/schedule/confirm}" method="post">
+                        <input type="hidden" name="selectedCategory" th:value="${selectedCategory}">
+                        <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                        <input type="hidden" name="selectedMonth" th:value="${selectedMonth}">
+                        <input type="hidden" name="calendarView" th:value="${calendarExpanded ? 'expanded' : null}">
+                        <textarea class="schedule-preview mb-3"
+                                  id="schedulePreview"
+                                  name="scheduleContent"
+                                  rows="10"
+                                  th:text="${schedulePreview}">日程预览</textarea>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-glow btn-sm" type="submit">确认保存为正式日程</button>
+                            <a class="btn btn-soft btn-sm"
+                               th:href="@{/tasks(category=${selectedCategory}, selectedDate=${selectedDate}, selectedMonth=${selectedMonth}, calendarView=${calendarExpanded ? 'expanded' : null})}">
+                                放弃预览
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <div th:if="${confirmedSchedule != null and !#strings.isEmpty(confirmedSchedule)}" class="mt-3">
+                    <h3 class="h6 mb-2">已确认的正式日程</h3>
+                    <pre class="confirmed-schedule mb-0" th:text="${confirmedSchedule}">正式日程</pre>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<!-- 展开日历时：点击退回按钮、遮罩或日历面板外区域，会先播放缩回动画再收起 -->
+<script th:if="${calendarExpanded}">
+    function closeExpandedCalendar(targetUrl) {
+        const expandedCalendar = document.querySelector('.mini-calendar--expanded');
+        if (!expandedCalendar) {
+            window.location.href = targetUrl;
+            return;
+        }
+        expandedCalendar.classList.add('is-closing');
+        window.setTimeout(function () {
+            window.location.href = targetUrl;
+        }, 180);
+    }
+
+    document.addEventListener('click', function (event) {
+        const closeLink = event.target.closest('.calendar-close-link');
+
+        if (closeLink) {
+            event.preventDefault();
+            closeExpandedCalendar(closeLink.href);
+            return;
+        }
+
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- 趣味挂件：眼球跟随鼠标（工作台小尺寸） -->
+<section class="eye-follow-widget eye-follow-widget--compact" aria-label="趣味眼球挂件">
+    <div class="eye-widget-card">
+        <div class="eye-pair">
+            <div class="eye" data-default-x="-6" data-default-y="-5">
+                <span class="pupil"></span>
+            </div>
+            <div class="eye" data-default-x="4" data-default-y="3">
+                <span class="pupil"></span>
+            </div>
+        </div>
+        <p class="eye-widget-name">Cookie Monster</p>
+    </div>
+</section>
+<!-- 昼夜切换：与首页共用同一脚本（无翻页时钟时会自动跳过时钟初始化） -->
+<script th:src="@{/js/theme.js}"></script>
+</body>
+</html>
