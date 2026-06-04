@@ -26,3 +26,8 @@ Desktop.ini
 # Word 临时锁文件
 ~$*
 docs/~$*
+
+# 课程设计实训报告（仅本地保存，不上传 GitHub）
+docs/24本计算机9班-*
+docs/*课程设计实训报告*
+docs/*填写版*

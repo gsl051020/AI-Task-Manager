@@ -1,0 +1,15 @@
+# Render Blueprint：连接 GitHub 仓库后可一键创建免费 Web 服务
+# 文档：https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: ai-task-manager
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: ai-task-manager
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DEEPSEEK_API_KEY
+        sync: false

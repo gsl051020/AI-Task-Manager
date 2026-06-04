@@ -97,6 +97,17 @@ body.calendar-open {
     overflow: hidden;
 }
 
+/*
+  展开日历时：主工作区/顶部 Hero 的 fade-up 会保留 transform，形成独立层叠上下文，
+  绘制顺序会盖住侧栏内 position:fixed 的展开日历。收起主区并抬高遮罩与日历层级。
+*/
+body.calendar-open .app-hero,
+body.calendar-open .main-workspace {
+    display: none;
+    animation: none;
+    transform: none;
+}
+
 /* ---------- Bootstrap 外观覆盖（统一到黑白灰主题） ---------- */
 .text-secondary {
     color: var(--text-soft) !important;
@@ -695,19 +706,28 @@ body.calendar-open .sidebar {
 }
 
 /* ---------- 展开日历：居中大浮层（实心不透明，保证清晰可见） ---------- */
-.calendar-backdrop {
+/*
+  展开后由 JS 把遮罩/日历挂到 body，避免 app-shell、glass-panel(isolation)
+  与遮罩 z-index 把整块日历压在不可点击的层下面。
+*/
+body.calendar-open .sidebar.glass-panel {
+    isolation: auto;
+}
+
+body.calendar-open .calendar-backdrop {
     position: fixed;
     inset: 0;
-    z-index: 15;
+    z-index: 9998;
     background: rgba(10, 12, 18, 0.55);
     animation: backdropFade 0.22s ease-out both;
 }
 
-.mini-calendar--expanded {
+body.calendar-open .mini-calendar--expanded {
     position: fixed;
     top: 50%;
     left: 50%;
-    z-index: 30;
+    z-index: 9999;
+    pointer-events: auto;
     width: min(1180px, calc(100vw - 64px));
     height: min(820px, calc(100vh - 64px));
     overflow-y: auto;
@@ -1112,6 +1132,10 @@ body.calendar-open .sidebar {
 }
 
 /* ---------- 趣味挂件：眼球跟随鼠标 ---------- */
+body.calendar-open .eye-follow-widget {
+    z-index: 40;
+}
+
 .eye-follow-widget {
     position: fixed;
     right: 16px;

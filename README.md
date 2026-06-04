@@ -26,10 +26,15 @@ mvn spring-boot:run
 - 工作台：http://localhost:8080/tasks
 - AI 连通测试：http://localhost:8080/api/ai/test
 
+## 免费上线（公网访问）
+
+按 **[docs/DEPLOY-FREE.md](docs/DEPLOY-FREE.md)** 使用 **Render 免费套餐** + GitHub 自动部署，无需信用卡。部署后把 `https://xxx.onrender.com` 发给他人即可访问。
+
 ## 文档
 
 | 文档 | 说明 |
 |------|------|
+| [docs/DEPLOY-FREE.md](docs/DEPLOY-FREE.md) | 免费公网部署（Render） |
 | [docs/FEATURE-SPEC.md](docs/FEATURE-SPEC.md) | 功能规格与 7 天实训映射 |
 | [docs/DEEPSEEK-SETUP.md](docs/DEEPSEEK-SETUP.md) | DeepSeek API 配置与验证 |
 | [docs/实训报告.md](docs/实训报告.md) | 实训报告（Markdown） |
