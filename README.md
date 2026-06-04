@@ -28,7 +28,13 @@ mvn spring-boot:run
 
 ## 免费上线（公网访问）
 
-按 **[docs/DEPLOY-FREE.md](docs/DEPLOY-FREE.md)** 使用 **Render 免费套餐** + GitHub 自动部署，无需信用卡。部署后把 `https://xxx.onrender.com` 发给他人即可访问。
+| 场景 | 文档 |
+|------|------|
+| **国内访问、中文界面（推荐）** | [docs/DEPLOY-CN.md](docs/DEPLOY-CN.md) — **Zeabur** 免费 + GitHub |
+| 海外 Render | [docs/DEPLOY-FREE.md](docs/DEPLOY-FREE.md) |
+| 本机临时公网（cpolar） | 见 DEPLOY-CN 第三节 |
+
+代码仓库：https://github.com/gsl051020/AI-Task-Manager
 
 ## 文档
 
